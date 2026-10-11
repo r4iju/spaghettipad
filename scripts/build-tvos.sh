@@ -17,6 +17,10 @@ SOURCE="$ROOT/build-tvos-source"
 python3 "$ROOT/scripts/prepare-tvos-source.py" "$SOURCE"
 VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"])' "$ROOT/version.json")"
 NUMBER="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["build"])' "$ROOT/version.json")"
+DISPLAY_NAME="SpaghettiPad"
+if [ -d "$ROOT/tvos/LocalBranding.xcassets" ] && [ -f "$ROOT/ref/local-branding.json" ]; then
+ DISPLAY_NAME="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["display_name"])' "$ROOT/ref/local-branding.json")"
+fi
 SOURCES=()
 if [ "$MODE" = --device ]; then
  for input in "$ROOT/build-tvos-sim/_deps/"*-src; do
@@ -31,7 +35,7 @@ cmake -S "$SOURCE" -B "$BUILD" -GXcode \
  -DCMAKE_PROJECT_INCLUDE="$ROOT/cmake/tvOS.cmake" \
  -DCMAKE_PROJECT_SDL2_INCLUDE="$ROOT/cmake/SDL2SceneLifecycle.cmake" \
  -DSPAGHETTIPAD_SHELL_DIR="$ROOT/tvos" -DSPAGHETTIPAD_PORT_ARCHIVE="$PORT" \
- -DSPAGHETTIPAD_VERSION="$VERSION" -DSPAGHETTIPAD_BUILD_NUMBER="$NUMBER" \
+ -DSPAGHETTIPAD_DISPLAY_NAME="$DISPLAY_NAME" -DSPAGHETTIPAD_VERSION="$VERSION" -DSPAGHETTIPAD_BUILD_NUMBER="$NUMBER" \
  -DBUNDLE_ID="${BUNDLE_ID:-com.emanuelfranzen.spaghettipad.tv}" -DDEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}"
 [ "${TVOS_CONFIGURE_ONLY:-0}" = 1 ] && exit 0
 SIGNING=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO)

@@ -5,7 +5,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>SpaghettiPad</string>
+    <string>@SPAGHETTIPAD_DISPLAY_NAME@</string>
     <key>CFBundleExecutable</key>
     <string>SpaghettiPad</string>
     <key>CFBundleIdentifier</key>

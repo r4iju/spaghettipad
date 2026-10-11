@@ -118,6 +118,7 @@ static void HandleClient(int client, NSString *sessionToken, unsigned long gener
     }
     if ([request[0] isEqualToString:@"GET"] && [path isEqualToString:base]) {
         NSString *page = @"<!doctype html><meta name='viewport' content='width=device-width'><title>SpaghettiPad TV</title><style>body{font:18px system-ui;max-width:650px;margin:60px auto;padding:24px;background:#141822;color:#eee}button,input{font:inherit;margin:12px 0;padding:12px}a{color:#9cf}</style><h1>SpaghettiPad TV</h1><p>Select your locally generated mk64.o2r. The app package contains no game data. Connect up to four gamepads for racing.</p><input id='game' type='file' accept='.o2r'><button onclick='upload(\"game\",\"archive\")'>Import game archive</button><p><a id='backup'>Download save backup</a></p><input id='save' type='file' accept='.json'><button onclick='upload(\"save\",\"restore\")'>Restore save backup</button><p id='status'></p><p>Keep this screen open during transfer. Save restoration takes effect next launch. tvOS may purge game data; keep your archive and save backup on your Mac.</p><script>backup.href=location.pathname+\"/saves\";async function upload(id,route){let f=document.getElementById(id).files[0];if(!f)return;document.getElementById('status').textContent=\"Transferring…\";let r=await fetch(location.pathname+\"/\"+route,{method:\"PUT\",body:f});document.getElementById('status').textContent=await r.text()}</script>";
+        page = [page stringByReplacingOccurrencesOfString:@"SpaghettiPad TV" withString:[NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: @"SpaghettiPad"];
         Reply(client, 200, "text/html; charset=utf-8", [page dataUsingEncoding:NSUTF8StringEncoding]); return;
     }
     bool archiveRequest = [path isEqualToString:[base stringByAppendingString:@"/archive"]];
@@ -246,7 +247,7 @@ static void StartServer() {
     [super viewDidLoad]; self.view.backgroundColor = [UIColor colorWithRed:.06 green:.08 blue:.13 alpha:1];
     UIStackView *stack = [[UIStackView alloc] init]; stack.axis = UILayoutConstraintAxisVertical;
     stack.spacing = 36; stack.translatesAutoresizingMaskIntoConstraints = NO;
-    UILabel *title = [[UILabel alloc] init]; title.text = @"SpaghettiPad TV"; title.font = [UIFont boldSystemFontOfSize:54]; title.textColor = UIColor.whiteColor;
+    UILabel *title = [[UILabel alloc] init]; title.text = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: @"SpaghettiPad"; title.font = [UIFont boldSystemFontOfSize:54]; title.textColor = UIColor.whiteColor;
     UILabel *instructions = [[UILabel alloc] init]; instructions.numberOfLines = 0; instructions.textColor = UIColor.whiteColor;
     instructions.text = [NSString stringWithFormat:@"On your Mac, open:\n%@\n\nImport your local mk64.o2r, or download/restore a save backup.\nGame data can be purged by tvOS; keep a copy on your Mac.\nPair up to four gamepads in Apple TV Settings. A = accelerate, X = brake, left stick = steer, Start = pause.\nPress View / Back in game for controller settings; open Transfer from that menu.", transferURL];
     instructions.font = [UIFont systemFontOfSize:27];
@@ -256,6 +257,13 @@ static void StartServer() {
     [continueButton setTitle:playing.load() ? @"Return to game" : @"Play" forState:UIControlStateNormal];
     continueButton.enabled = ready.load();
     [continueButton addTarget:self action:@selector(play) forControlEvents:UIControlEventPrimaryActionTriggered];
+    UIImage *logo = [UIImage imageNamed:@"LocalGameLogo"];
+    if (logo) {
+        UIImageView *image = [[UIImageView alloc] initWithImage:logo];
+        image.contentMode = UIViewContentModeScaleAspectFit;
+        [image.heightAnchor constraintEqualToConstant:160].active = YES;
+        [stack addArrangedSubview:image];
+    }
     for (UIView *v in @[title, instructions, statusLabel, continueButton]) [stack addArrangedSubview:v];
     [self.view addSubview:stack];
     [NSLayoutConstraint activateConstraints:@[[stack.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:100], [stack.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-100], [stack.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor]]];

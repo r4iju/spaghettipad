@@ -21,3 +21,6 @@ work/
 
 # PadMint and other local build workspaces
 /build/
+
+# Original game branding is local-only, decoded from the user archive
+/tvos/LocalBranding.xcassets/

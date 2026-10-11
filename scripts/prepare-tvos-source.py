@@ -49,3 +49,8 @@ replace('src/port/ui/PortMenu.cpp', 'extern void SpaghettiTV_OpenTransfer(); Spa
 replace('CMakeLists.txt', 'target_link_libraries(${PROJECT_NAME} PRIVATE "-framework GameController")', 'target_link_libraries(${PROJECT_NAME} PRIVATE "-framework GameController" libzip::zip)')
 replace('libultraship/src/ship/controller/physicaldevice/ConnectedPhysicalDeviceManager.cpp', '#if TARGET_OS_SIMULATOR\n        const char* simulatorControllerName', '#ifdef __TVOS__\n        const char* tvControllerName = SDL_GameControllerNameForIndex(i);\n        if (tvControllerName != nullptr && SDL_strcmp(tvControllerName, "Remote") == 0) {\n            if (!isPeriodicCheck) SPDLOG_DEBUG("Keeping the Apple TV Remote out of racing slots");\n            continue;\n        }\n#endif\n#if TARGET_OS_SIMULATOR\n        const char* simulatorControllerName')
 print(out)
+
+# Local branding is optional and remains outside the staged source archives.
+p = out / 'CMakeLists.txt'
+with p.open('a') as cmake:
+    cmake.write('\nif(EXISTS "${SPAGHETTIPAD_SHELL_DIR}/LocalBranding.xcassets")\n  target_sources(${PROJECT_NAME} PRIVATE "${SPAGHETTIPAD_SHELL_DIR}/LocalBranding.xcassets")\n  set_source_files_properties("${SPAGHETTIPAD_SHELL_DIR}/LocalBranding.xcassets" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)\n  set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")\nendif()\n')

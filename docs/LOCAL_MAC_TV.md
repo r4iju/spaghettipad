@@ -27,6 +27,19 @@ The patch preserves every other archive entry and is idempotent.
 
 ## tvOS
 
+For local original-game branding, decode the logo from your own game archive:
+
+```sh
+python3 scripts/import-local-branding.py ref/mk64.o2r
+```
+
+This creates `tvos/LocalBranding.xcassets` and `ref/local-branding.json`, both
+gitignored. Local tvOS builds then use the original logo, layered app icons and
+game display name. A checkout without these local inputs retains the neutral
+name and transfer screen. Bundle identifiers, executable names and save locations
+stay stable. Ignoring these files keeps them out of source commits; it does not
+grant permission to distribute a branded app. Public releases remain paused.
+
 The new UIKit shell provides a focused Play button, local network archive import,
 save backup/restore, and controller instructions. The Siri Remote is excluded
 from gamepad slots; up to four extended gamepads use the existing player routing.
