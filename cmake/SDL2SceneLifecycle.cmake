@@ -1,6 +1,6 @@
 # SDL2's project hook runs before CMake enumerates its sources. Keep this
 # compatibility backport scoped to the fetched iOS SDL2 input.
-if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+if(NOT CMAKE_SYSTEM_NAME MATCHES "^(iOS|tvOS)$")
   return()
 endif()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
