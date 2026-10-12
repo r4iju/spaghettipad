@@ -63,5 +63,8 @@ for name, w, h, scales in [('AppIcon',400,240,[1,2]), ('AppIcon-AppStore',1280,7
     image = background / 'Content.imageset'
     metadata(image, images=[{'idiom':'tv','filename':f'background-{s}x.png','scale':f'{s}x'} for s in scales])
     for s in scales: png(image / f'background-{s}x.png', w*s,h*s,True,True)
-(root / 'ref/local-branding.json').write_text(json.dumps({'display_name': 'Mario Kart 64'}, indent=2) + '\n')
+settings_path = root / 'ref/local-branding.json'
+settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+settings['display_name'] = 'Mario Kart 64'
+settings_path.write_text(json.dumps(settings, indent=2) + '\n')
 print(f'Local-only original logo and tvOS icons: {out}')

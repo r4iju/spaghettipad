@@ -54,3 +54,6 @@ print(out)
 p = out / 'CMakeLists.txt'
 with p.open('a') as cmake:
     cmake.write('\nif(EXISTS "${SPAGHETTIPAD_SHELL_DIR}/LocalBranding.xcassets")\n  target_sources(${PROJECT_NAME} PRIVATE "${SPAGHETTIPAD_SHELL_DIR}/LocalBranding.xcassets")\n  set_source_files_properties("${SPAGHETTIPAD_SHELL_DIR}/LocalBranding.xcassets" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)\n  set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")\nendif()\n')
+
+with p.open('a') as cmake:
+    cmake.write('\nset(SPAGHETTIPAD_GAME_ARCHIVE "" CACHE FILEPATH "Optional local-only game archive")\nif(SPAGHETTIPAD_GAME_ARCHIVE)\n  if(NOT EXISTS "${SPAGHETTIPAD_GAME_ARCHIVE}")\n    message(FATAL_ERROR "Local game archive does not exist")\n  endif()\n  get_filename_component(GAME_ARCHIVE_NAME "${SPAGHETTIPAD_GAME_ARCHIVE}" NAME)\n  if(NOT GAME_ARCHIVE_NAME STREQUAL "mk64.o2r")\n    message(FATAL_ERROR "Local game archive must be named mk64.o2r")\n  endif()\n  target_sources(${PROJECT_NAME} PRIVATE "${SPAGHETTIPAD_GAME_ARCHIVE}")\n  set_source_files_properties("${SPAGHETTIPAD_GAME_ARCHIVE}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)\nendif()\n')

@@ -1,5 +1,11 @@
 # SpaghettiPad
 
+This fork also provides local native macOS build helpers and a tvOS port.
+Personal Apple TV installations must bundle the locally owned game archive,
+start without an import step, and restore game data after cache purges.
+The archive and original branding stay out of Git. See the
+[local Mac and Apple TV instructions](docs/LOCAL_MAC_TV.md).
+
 <p align="center">
   <strong>Mario Kart 64 on iPhone and iPad—with touch controls and Bluetooth controller routing.</strong><br>
   Native Metal rendering, full-analog touch steering, four-player controller

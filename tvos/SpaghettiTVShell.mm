@@ -117,7 +117,7 @@ static void HandleClient(int client, NSString *sessionToken, unsigned long gener
         return;
     }
     if ([request[0] isEqualToString:@"GET"] && [path isEqualToString:base]) {
-        NSString *page = @"<!doctype html><meta name='viewport' content='width=device-width'><title>SpaghettiPad TV</title><style>body{font:18px system-ui;max-width:650px;margin:60px auto;padding:24px;background:#141822;color:#eee}button,input{font:inherit;margin:12px 0;padding:12px}a{color:#9cf}</style><h1>SpaghettiPad TV</h1><p>Select your locally generated mk64.o2r. The app package contains no game data. Connect up to four gamepads for racing.</p><input id='game' type='file' accept='.o2r'><button onclick='upload(\"game\",\"archive\")'>Import game archive</button><p><a id='backup'>Download save backup</a></p><input id='save' type='file' accept='.json'><button onclick='upload(\"save\",\"restore\")'>Restore save backup</button><p id='status'></p><p>Keep this screen open during transfer. Save restoration takes effect next launch. tvOS may purge game data; keep your archive and save backup on your Mac.</p><script>backup.href=location.pathname+\"/saves\";async function upload(id,route){let f=document.getElementById(id).files[0];if(!f)return;document.getElementById('status').textContent=\"Transferring…\";let r=await fetch(location.pathname+\"/\"+route,{method:\"PUT\",body:f});document.getElementById('status').textContent=await r.text()}</script>";
+        NSString *page = @"<!doctype html><meta name='viewport' content='width=device-width'><title>SpaghettiPad TV</title><style>body{font:18px system-ui;max-width:650px;margin:60px auto;padding:24px;background:#141822;color:#eee}button,input{font:inherit;margin:12px 0;padding:12px}a{color:#9cf}</style><h1>SpaghettiPad TV</h1><p>Select your locally generated mk64.o2r. Import an archive if your build does not include one. Connect up to four gamepads for racing.</p><input id='game' type='file' accept='.o2r'><button onclick='upload(\"game\",\"archive\")'>Import game archive</button><p><a id='backup'>Download save backup</a></p><input id='save' type='file' accept='.json'><button onclick='upload(\"save\",\"restore\")'>Restore save backup</button><p id='status'></p><p>Keep this screen open during transfer. Save restoration takes effect next launch. tvOS may purge game data; keep your archive and save backup on your Mac.</p><script>backup.href=location.pathname+\"/saves\";async function upload(id,route){let f=document.getElementById(id).files[0];if(!f)return;document.getElementById('status').textContent=\"Transferring…\";let r=await fetch(location.pathname+\"/\"+route,{method:\"PUT\",body:f});document.getElementById('status').textContent=await r.text()}</script>";
         page = [page stringByReplacingOccurrencesOfString:@"SpaghettiPad TV" withString:[NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: @"SpaghettiPad"];
         Reply(client, 200, "text/html; charset=utf-8", [page dataUsingEncoding:NSUTF8StringEncoding]); return;
     }
@@ -282,6 +282,21 @@ static void ShowTransfer() {
     transferWindow.rootViewController = [[SpaghettiTVTransferController alloc] init];
     [transferWindow makeKeyAndVisible];
 }
+static bool PrepareBundledArchive() {
+    NSString *bundled = [NSBundle.mainBundle pathForResource:@"mk64" ofType:@"o2r"];
+    if (!bundled || !ValidArchive(bundled)) return false;
+    NSString *cached = [dataPath stringByAppendingPathComponent:@"mk64.o2r"];
+    if (ValidArchive(cached)) return true;
+    NSString *temporary = [dataPath stringByAppendingPathComponent:[NSString stringWithFormat:@"bundled-%@.tmp", NSUUID.UUID.UUIDString]];
+    NSError *error = nil;
+    bool copied = [NSFileManager.defaultManager copyItemAtPath:bundled toPath:temporary error:&error];
+    bool restored = copied && ValidArchive(temporary) && rename(temporary.fileSystemRepresentation, cached.fileSystemRepresentation) == 0;
+    [NSFileManager.defaultManager removeItemAtPath:temporary error:nil];
+    if (!restored) NSLog(@"[SpaghettiTV] Could not restore bundled game archive: %@", error);
+    else NSLog(@"[SpaghettiTV] Restored bundled game archive");
+    return restored;
+}
+
 extern "C" void SpaghettiTV_PrepareGameData() {
     SDL_SetHint(SDL_HINT_TV_REMOTE_AS_JOYSTICK, "0");
     dataPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Caches/SpaghettiPad"];
@@ -293,6 +308,7 @@ extern "C" void SpaghettiTV_PrepareGameData() {
     savedFiles = [[NSUserDefaults.standardUserDefaults dictionaryForKey:@"SpaghettiTV.Saves.v1"] mutableCopy] ?: [NSMutableDictionary dictionary];
     for (NSString *name in savedFiles) if (SaveName(name) && [savedFiles[name] isKindOfClass:NSData.class]) [savedFiles[name] writeToFile:[dataPath stringByAppendingPathComponent:name] atomically:YES];
     [NSUserDefaults.standardUserDefaults setBool:NO forKey:@"SpaghettiTV.RestorePending"];
+    bool bundledReady = PrepareBundledArchive();
     ready.store(ValidArchive([dataPath stringByAppendingPathComponent:@"mk64.o2r"]));
     [NSNotificationCenter.defaultCenter addObserverForName:UIApplicationDidEnterBackgroundNotification object:nil queue:nil usingBlock:^(NSNotification *) {
         SpaghettiTV_PersistSave();
@@ -302,6 +318,7 @@ extern "C" void SpaghettiTV_PrepareGameData() {
     [NSNotificationCenter.defaultCenter addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:nil usingBlock:^(NSNotification *) {
         if (resumeTransfer) { resumeTransfer = false; ShowTransfer(); }
     }];
+    if (bundledReady && ready.load()) { playing.store(true); return; }
     ShowTransfer();
     while (!playing.load()) {
 #if TARGET_OS_SIMULATOR

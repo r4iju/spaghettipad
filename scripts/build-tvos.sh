@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local tvOS builds only. Game data is imported at runtime, never packaged.
+# Local tvOS builds. Optional user-owned game archive stays out of Git.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MODE="${1:---simulator}"
@@ -21,6 +21,11 @@ DISPLAY_NAME="SpaghettiPad"
 if [ -d "$ROOT/tvos/LocalBranding.xcassets" ] && [ -f "$ROOT/ref/local-branding.json" ]; then
  DISPLAY_NAME="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["display_name"])' "$ROOT/ref/local-branding.json")"
 fi
+GAME_ARCHIVE="${SPAGHETTIPAD_GAME_ARCHIVE-}"
+if [ -z "${SPAGHETTIPAD_GAME_ARCHIVE+x}" ] && [ -f "$ROOT/ref/local-branding.json" ]; then
+ GAME_ARCHIVE="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("game_archive", ""))' "$ROOT/ref/local-branding.json")"
+fi
+if [ -n "$GAME_ARCHIVE" ] && [[ "$GAME_ARCHIVE" != /* ]]; then GAME_ARCHIVE="$ROOT/$GAME_ARCHIVE"; fi
 SOURCES=()
 if [ "$MODE" = --device ]; then
  for input in "$ROOT/build-tvos-sim/_deps/"*-src; do
@@ -35,13 +40,15 @@ cmake -S "$SOURCE" -B "$BUILD" -GXcode \
  -DCMAKE_PROJECT_INCLUDE="$ROOT/cmake/tvOS.cmake" \
  -DCMAKE_PROJECT_SDL2_INCLUDE="$ROOT/cmake/SDL2SceneLifecycle.cmake" \
  -DSPAGHETTIPAD_SHELL_DIR="$ROOT/tvos" -DSPAGHETTIPAD_PORT_ARCHIVE="$PORT" \
- -DSPAGHETTIPAD_DISPLAY_NAME="$DISPLAY_NAME" -DSPAGHETTIPAD_VERSION="$VERSION" -DSPAGHETTIPAD_BUILD_NUMBER="$NUMBER" \
+ -DSPAGHETTIPAD_GAME_ARCHIVE="$GAME_ARCHIVE" -DSPAGHETTIPAD_DISPLAY_NAME="$DISPLAY_NAME" -DSPAGHETTIPAD_VERSION="$VERSION" -DSPAGHETTIPAD_BUILD_NUMBER="$NUMBER" \
  -DBUNDLE_ID="${BUNDLE_ID:-com.emanuelfranzen.spaghettipad.tv}" -DDEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}"
 [ "${TVOS_CONFIGURE_ONLY:-0}" = 1 ] && exit 0
 SIGNING=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO)
 if [ "$MODE" = --device ] && [ -n "${DEVELOPMENT_TEAM:-}" ] && [ -z "${TVOS_PROFILE:-}" ]; then
  SIGNING=(-allowProvisioningUpdates CODE_SIGN_IDENTITY='Apple Development')
 fi
+# Remove a previous optional archive when rebuilding an import-only app.
+if [ -z "$GAME_ARCHIVE" ]; then rm -f "$BUILD/Release-$SDK/SpaghettiPad.app/mk64.o2r"; fi
 cmake --build "$BUILD" --config Release --target Spaghettify --parallel "$JOBS" -- "${SIGNING[@]}"
 if [ "$MODE" = --device ] && [ -n "${TVOS_PROFILE:-}" ]; then
  python3 "$ROOT/scripts/sign-tvos.py" "$BUILD/Release-$SDK/SpaghettiPad.app" "$TVOS_PROFILE"

@@ -3,6 +3,12 @@
 These are local development builds. Public releases remain paused. The maintained
 engine, libultraship and Torch gitlinks remain clean at their pinned commits.
 
+**Personal installation requirement:** Emanuel's installed Apple TV app must
+include `mk64.o2r` in its app bundle, start the game without an import step, and
+recover automatically when tvOS purges cached game data. Runtime import alone
+does not meet this requirement, regardless of upstream build instructions.
+Keep game data and original branding local and gitignored.
+
 ## Mac
 
 The upstream native macOS target uses Metal and SDL. No desktop port was added.
@@ -45,8 +51,10 @@ save backup/restore, and controller instructions. The Siri Remote is excluded
 from gamepad slots; up to four extended gamepads use the existing player routing.
 View/Back opens the game settings. Transfer is under Settings → Controls.
 
-Game data lives in `Library/Caches/SpaghettiPad`, as required for purgeable tvOS
-assets. EEPROM, controller-pak files and settings are copied into app preferences
+Imported game data lives in `Library/Caches/SpaghettiPad`, as required for purgeable tvOS
+assets. Personal builds can include a read-only copy of the game archive in the app
+bundle. These builds restore missing or invalid cached data from the bundle and
+start the game directly, without opening Transfer. EEPROM, controller-pak files and settings are copied into app preferences
 on EEPROM writes, periodically and on backgrounding, and recovered on launch.
 Keep the game archive and downloaded JSON save backups on the Mac. Uninstalling
 the app removes its preferences too. A restored backup takes effect next launch.
@@ -59,9 +67,20 @@ TVOS_BUILD_JOBS=2 scripts/build-tvos.sh --simulator
 TVOS_BUILD_JOBS=2 scripts/build-tvos.sh --device
 ```
 
+For the self-contained personal device installation, use this explicit command:
+
+```sh
+SPAGHETTIPAD_GAME_ARCHIVE="$PWD/ref/mk64.o2r" TVOS_BUILD_JOBS=2 scripts/build-tvos.sh --device
+```
+
 Sources are staged under ignored `build-tvos-source`; maintained submodules are
 not edited. Device dependencies reuse simulator dependency sources. Normal app
-builds package only the clean `spaghetti.o2r`, never `mk64.o2r` or the ROM.
+builds package only the clean `spaghetti.o2r`. To include your local game archive,
+set `SPAGHETTIPAD_GAME_ARCHIVE=/absolute/path/to/mk64.o2r` when building. The ROM
+itself is never packaged. An ignored `ref/local-branding.json` can also specify
+`"game_archive": "ref/mk64.o2r"` so personal rebuilds retain this setting. An
+explicit empty `SPAGHETTIPAD_GAME_ARCHIVE` overrides it and produces an import-only
+build. Both the archive and app bundles stay gitignored.
 
 Set `TVOS_PROFILE` to the local matching tvOS development profile, then sign:
 
@@ -102,6 +121,11 @@ has already loaded. Save backups can be downloaded while Transfer is open.
 - tvOS simulator: first-run import screen rendered; invalid upload rejected and
   local game archive accepted. Virtual SDL gamepad Start/A navigated menus and
   entered a single-player race. Acceleration and steering visibly moved Mario.
+- Self-contained tvOS simulator build: bundled archive matched the local source
+  byte-for-byte. Deleted the entire cached game directory, then launched without
+  the simulator autoplay option: data recovered from the app bundle and the game
+  rendered its startup sequence. Repeated with an invalid cached archive; the
+  bundle replaced it byte-for-byte and the game rendered its attract sequence.
 - tvOS simulator: four controllers were assigned separate player slots. A real
   four-player versus race rendered all four views; isolated inputs moved players
   2, 3 and 4 while player 1 remained stationary.
